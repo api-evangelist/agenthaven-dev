@@ -1,0 +1,121 @@
+generated: '2026-09-19'
+method: searched
+source: https://travel.agenthaven.dev/.well-known/agent-card.json
+docs:
+- https://travel.agenthaven.dev/
+- https://agenthaven.dev/
+- https://travel.agenthaven.dev/.well-known/ard.json
+summary: >-
+  Agent Bench's conformance profile is the agent-discovery and agent-identity protocol stack, not an enterprise
+  or sector API standard. It publishes an A2A 0.3 agent card and an MCP 2025-06-18 server, both JSON-RPC 2.0;
+  discovers the agent through DNS-AID (SVCB + TXT records in a DNSSEC-signed zone, with the card pinned by
+  SHA-256 digest and the record signed with ES256), pins the TLS certificate with DANE TLSA, identifies the
+  running instance with a SPIFFE JWT-SVID under trust domain agenthaven.dev, signs quotes and receipts as
+  typed JWTs, canonicalises its audit ledger with RFC 8785 JCS, settles checkouts under AP2-format mandates
+  from a third-party issuer, and is registered in GoDaddy's Agent Name Service with a SCITT-style transparency
+  receipt. It declares no OAuth/OIDC, no RFC 9728 protected-resource metadata, no RFC 9457 problem details, no
+  RFC 9116 security.txt, no RFC 9727 API catalog and no OpenAPI. Every entry below carries the URL or record
+  it was read from; nothing is asserted from prose alone.
+standards:
+- id: a2a
+  name: Agent2Agent protocol
+  version: '0.3'
+  conforms: true
+  evidence: a2a/agenthaven-dev-agent-card.json — protocolVersion "0.3", url https://travel.agenthaven.dev/a2a, preferredTransport JSONRPC, capabilities object, skills[] of 2; POST https://travel.agenthaven.dev/a2a answered an unsupported method with JSON-RPC -32601 naming message/send as the implemented method. Graded conformant in a2a/agenthaven-dev-a2a.yml.
+- id: mcp
+  name: Model Context Protocol
+  version: '2025-06-18'
+  conforms: true
+  evidence: 'POST https://travel.agenthaven.dev/mcp initialize returned protocolVersion "2025-06-18", serverInfo {agent-bench-travel-merchant, 0.1.0}, capabilities.tools.listChanged false; tools/list returned 2 tools with inputSchema and outputSchema. See mcp/agenthaven-dev-mcp.yml.'
+- id: json-rpc-2.0
+  conforms: true
+  evidence: 'Both /mcp and /a2a answer {"jsonrpc":"2.0", ...} with standard -32601 for unimplemented methods and structured error.data.'
+- id: dns-aid
+  name: DNS-based Agent Identification and Discovery (draft-mozleywilliams-dnsop-dnsaid)
+  version: draft-02
+  conforms: true
+  domain_standard_signature: true
+  evidence: 'dns:_index._agents.agenthaven.dev TXT "agents=travel:a2a,car-rental:a2a,hotel:a2a"; dns:travel.agenthaven.dev SVCB priority 1 alpn "a2a" port 443 with key65400 (card URL), key65401 (card SHA-256 digest sWJzLIPAuM_xhwpvjtKYy3xJ6VI75YPZo6gxYFJ2xr0 — matches the fetched bytes), key65405 (ES256 JWS, kid dnsaid-2026-09) and key65409 ("agent-card.json"); TXT "capabilities=travel-checkout" "version=1.0.0"; verification JWKS served at https://dns-aid.agenthaven.dev/.well-known/dns-aid-jwks.json and https://agenthaven.dev/.well-known/dns-aid-jwks.json. The ARD catalog''s trustSchema names the draft''s datatracker URL and version draft-02 with verificationMethods [dnssec-svcb, dane-tlsa, cap-sha256].'
+  note: >-
+    The DNS index names three agents; only travel resolves and connects. car-rental.agenthaven.dev and
+    hotel.agenthaven.dev have no A, TXT or SVCB record (NOERROR, empty), so two of the three index entries are
+    unpublished. Signature verification of key65405 was not performed by this pipeline; the key material and
+    the record are recorded as served.
+- id: dnssec
+  name: DNS Security Extensions (RFC 4033-4035, RFC 9364)
+  conforms: true
+  evidence: 'agenthaven.dev DS 2371 13 2 9254BECC…6373 at the parent; DNSKEY 257/256 algorithm 13 (ECDSAP256SHA256); RRSIG on the A record; resolver 1.1.1.1 returned the AD flag (dig +dnssec, 2026-09-19). Also recorded by security/agenthaven-dev-domain-security.yml (dnssec: true).'
+- id: dane-tlsa
+  name: DNS-Based Authentication of Named Entities (RFC 6698, RFC 7671)
+  conforms: true
+  evidence: 'dns:_443._tcp.travel.agenthaven.dev TLSA 3 1 1 3E974DA4…4A7A and 3 0 1 75AE46B3…5B66 (DANE-EE, end-entity pin). The ARD catalog lists "dane-tlsa" as a verification method. Certificate matching against the served chain was not performed by this pipeline.'
+- id: spiffe-jwt-svid
+  name: SPIFFE JWT-SVID and trust bundle
+  conforms: true
+  evidence: 'https://travel.agenthaven.dev/.well-known/spiffe-bundle.json — JWKS with use "jwt-svid", kid DoVbzUAb9VWHfCey7yucB02jbL9a0l4wuYfP_OXZ0NQ; https://travel.agenthaven.dev/.well-known/spiffe-svid.json — spiffe_id spiffe://agenthaven.dev/merchant/demo-travel-seller/y53CDyiqoPptlOkBPKGmxLzl7WcTDWMqII7yZtfPu2Y with the instance public JWK and a compact JWT SVID; the same spiffe_id and JWK appear as ledger.signer in GET /ledger and as evidence.signer in both tool output schemas.'
+  note: The bundle is served at a provider-chosen well-known path, not through the SPIFFE Federation bundle-endpoint protocol; the docs call it the "Domain trust bundle" and the SVID the "Instance badge (SVID), issued by the domain, not by the agent".
+- id: jws-jwt
+  name: JSON Web Signature / JSON Web Token (RFC 7515, RFC 7519) with typed tokens
+  conforms: true
+  evidence: 'Tool output schemas declare quote_jws (typ quote+jwt) and receipt_jws (typ receipt+jwt) as compact JWS signed by the instance key; the authorization text declares request envelopes (typ request+jwt) and mandates (typ mandate+jwt); every JWK served is EC P-256 ES256; ledger signature is ES256 over the entry hash.'
+- id: rfc8785-jcs
+  name: JSON Canonicalization Scheme (RFC 8785)
+  conforms: true
+  evidence: 'GET https://travel.agenthaven.dev/ledger canonicalization: "RFC 8785 (JCS) over {at, type, correlation_id, facts, previous_hash, signer}; hash = SHA-256 hex of the UTF-8 bytes; signature = ES256 over the hex hash string". 639 hash-chained entries at fetch. Chain verification was not performed by this pipeline.'
+- id: ap2
+  name: Agent Payments Protocol (AP2) mandate format
+  version: ap2-v0.2
+  conforms: true
+  verification: partial
+  domain_standard_signature: true
+  evidence: 'GET https://travel.agenthaven.dev/ledger — checkout.completed entries carry facts.mandate_format "ap2-v0.2", facts.mandate_stage "ap2", facts.ap2_checkout_reference, facts.mandate_issuer https://sealedby.dev and facts.policy_version "2026-09-11"; GET /health lists mandate_issuers ["https://sealedby.dev"]. The create_checkout inputSchema takes mandate_jws (typ mandate+jwt) bound to quote_hash and the envelope key.'
+  note: >-
+    Observed in the provider's own published ledger and schema, not in a spec document naming AP2 — the
+    mandates are issued by a third party (sealedby.dev, which returned 404 at its root on 2026-09-19) and the
+    merchant consumes them. Recorded as the contract-level signature for agent-commerce mandates with
+    verification "partial" because no AP2 conformance statement is published and no mandate was exercised.
+- id: ard
+  name: ARD catalog (specVersion 1.0) at /.well-known/ard.json
+  conforms: true
+  evidence: 'https://travel.agenthaven.dev/.well-known/ard.json — specVersion "1.0", host {displayName "Agent Bench", identifier https://travel.agenthaven.dev}, one entry of type application/a2a-agent-card+json (identifier urn:air:travel.agenthaven.dev:agent:travel-merchant) with capabilities, representativeQueries and a trustManifest carrying four attestations (DNS-AID-CapDigest, DNSSEC-SignedRecord, DANE-TLSA, ANS-Registration). Saved verbatim to well-known/agenthaven-dev-ard.json.'
+  note: The docs describe it only as "ARD. Catalog at the normative well-known path." and "trust manifest anchored in the DNS-AID evidence"; the acronym is not expanded on any page found, so it is recorded under the provider's own label.
+- id: ans
+  name: GoDaddy Agent Name Service registration with transparency-log receipt
+  conforms: true
+  evidence: 'https://api.godaddy.com/v1/ans/registered-agents/9a311416-b877-4f0d-8ee5-1d63d047e82f (200) — ansName ans://v0.1.0.travel.agenthaven.dev, agentHost travel.agenthaven.dev, lifecycle ACTIVE, expiresAt 2026-11-25; https://transparency.ans.godaddy.com/v1/agents/9a311416-b877-4f0d-8ee5-1d63d047e82f (200) — Merkle proof, leafIndex 199068; the ARD attestation names the receipt as application/scitt-receipt+cose.'
+  note: Third-party registry; recorded because the provider links both URLs from its documentation page and lists the registration in its own trust manifest.
+- id: iata-ndc
+  name: IATA New Distribution Capability (airline retailing API standard)
+  conforms: false
+  evidence: 'No NDC message shape, schema or endpoint on any surface. The tools use IATA three-letter airport codes as identifiers (inputSchema pattern ^[A-Z]{3}$ with the instruction "MAD", not "Madrid") and fares are live Google Flights results fetched through SerpApi per the docs; that is an identifier convention, not the airline-distribution standard.'
+- id: oauth2
+  conforms: false
+  evidence: 'No token endpoint ("There is no public token endpoint"), no /.well-known/oauth-authorization-server (404), no /.well-known/openid-configuration (404). The bearer JWT is either self-issued (request envelope) or operator-issued on request.'
+- id: oidc
+  conforms: false
+  evidence: /.well-known/openid-configuration 404 on every host.
+- id: rfc9728-protected-resource
+  conforms: false
+  evidence: 'https://travel.agenthaven.dev/.well-known/oauth-protected-resource — 404 {"error":{"code":"not_found","message":"This merchant has no authorization server configured."}}.'
+- id: rfc9457-problem-details
+  conforms: false
+  evidence: 'Errors are {"error":{"code","message"},"request_id"} on application/json (observed 404/405), JSON-RPC 2.0 error objects on /mcp and /a2a, and ledger request.refused entries with facts.reason — no application/problem+json, no type/title/status/instance. See errors/agenthaven-dev-problem-types.yml.'
+- id: rfc9116-security-txt
+  conforms: false
+  evidence: /.well-known/security.txt and /security.txt 404 on every host.
+- id: rfc9727-api-catalog
+  conforms: false
+  evidence: /.well-known/api-catalog and /.well-known/api-catalog.json 404 on every host.
+- id: apis-json
+  conforms: false
+  evidence: /apis.json, /.well-known/apis.json and /apis.yml 404 on every host.
+- id: openapi
+  conforms: false
+  evidence: /openapi.json, /openapi.yaml, /swagger.json, /docs 404 on travel.agenthaven.dev and the apex; the machine-readable contract is the MCP tools/list (JSON Schema draft-07 on outputSchema).
+- id: ucp-acp
+  name: Universal Commerce Protocol / Agentic Commerce Protocol well-known
+  conforms: false
+  evidence: /.well-known/ucp.json and /.well-known/acp.json 404 on every host. The checkout is a payment-intent flow under AP2 mandates, not a UCP/ACP storefront.
+compliance_program:
+  published: false
+  note: No SOC 2 / ISO 27001 / PCI / trust-center or compliance page exists (probe-security-programs.py 2026-09-19 found none; /security, /legal, /terms, /privacy all 404 on both hosts). No Compliance pointer is emitted.

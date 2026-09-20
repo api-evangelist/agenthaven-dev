@@ -1,0 +1,67 @@
+generated: '2026-09-19'
+method: searched
+source: https://travel.agenthaven.dev/
+docs:
+- https://travel.agenthaven.dev/health
+- https://travel.agenthaven.dev/ledger
+- https://api.godaddy.com/v1/ans/registered-agents/9a311416-b877-4f0d-8ee5-1d63d047e82f
+maturity: proof of concept — the card, the docs page, the ARD entry and /health (official_demo true) all say so; "payment is simulated and no ticket is issued"
+versioning:
+  scheme: single version string on the agent, no version in paths; protocol versions pinned per interface
+  current_version: 0.1.0 (agent card version, MCP serverInfo.version, ANS agentVersion v0.1.0)
+  build: v0.1.0-79-g6bcffd3 (GET /health build, 2026-09-19)
+  protocols: {a2a: '0.3', mcp: '2025-06-18', dns_aid_record: 'version=1.0.0 (TXT), draft-02 (ARD trustSchema)', ans: 'ans://v0.1.0.travel.agenthaven.dev'}
+  policy_published: false
+  note: The DNS TXT record says version=1.0.0 while every other surface says 0.1.0; the TXT value is the DNS-AID record's own version field, not the agent's.
+deprecation:
+  policy_published: false
+  sunset_header: false
+  deprecation_header: false
+  rfc8594: false
+  deprecated_operations: []
+  documented_changes:
+  - date: '2026-09-07'
+    what: Ledger entry types renamed — commerce.quote.created -> quote.created and commerce.payment_intent.created -> payment_intent.created; checkout.completed introduced as the closing entry.
+    evidence: 'GET /ledger reading.entries — "The name quote.created carried before 2026-09-07 … Kept as written because the chain is append-only"; 9 + 5 old-type entries remain in the chain.'
+    breaking: false — old entries kept under their old names; readers must accept both
+  - date: '2026-09-14'
+    what: Anonymous search allowed — search_flights no longer requires authorization.
+    evidence: 'GET /ledger reading.entries.quote.created — "facts.actor null with no facts.authorization_id means the search was anonymous (allowed since 2026-09-14)".'
+    breaking: false
+  - date: '2026-09-11'
+    what: Mandate policy version in force.
+    evidence: ledger checkout.completed facts.policy_version "2026-09-11"
+  - what: search_flights output gained options[] (up to two quotes) while keeping the single quote field.
+    evidence: 'tools/list outputSchema — quote is "The first option, kept for callers written before options existed."'
+    breaking: false — additive with a compatibility field
+  note: No deprecation or versioning page exists (/changelog, /docs 404). Changes are recorded inside the ledger's reading guide and the tool schemas, dated where the provider dated them. No Deprecation pointer is emitted.
+status:
+  status_page: null
+  probed: [{url: 'https://travel.agenthaven.dev/status', status: 404}, {url: 'https://agenthaven.dev/status', status: 404}]
+  live_signal:
+    url: https://travel.agenthaven.dev/health
+    status: 200
+    observed: 'status ok; mode official; official_demo true; role merchant; flight_provider google-flights; payment_provider stripe; dependencies [google-flights-serpapi, stripe-test, audit-log]; edge_attestation_required false; counters (anonymous searches used_this_month 47 of 120, used_today 0 of 40; refusals_written 0)'
+    note: A machine health endpoint the docs list as "Health — status and mode", not an incident/uptime page; no StatusPage pointer is emitted.
+registrations:
+  ans:
+    registered: true
+    expires: '2026-11-25T20:47:09Z'
+    lifecycle: ACTIVE
+    indexed: '2026-09-19'
+    first_seen_by_ans: '2026-08-31'
+    first_seen_basis: ANS agentage signal issuedAt 2026-08-31T12:52:52Z
+    source: https://api.godaddy.com/v1/ans/registered-agents/9a311416-b877-4f0d-8ee5-1d63d047e82f
+  dns_aid_index:
+    published: [travel]
+    listed_but_unresolved: [car-rental, hotel]
+    note: '"agents=travel:a2a,car-rental:a2a,hotel:a2a" in _index._agents.agenthaven.dev TXT; the two extra names have no DNS records and the index page lists only travel.'
+activity:
+  ledger_first_entry: '2026-08-27T20:41:36Z'
+  ledger_last_entry_at_fetch: '2026-09-19T23:38:20Z'
+  entries: 639
+  checkouts_completed: 58
+  note: The public ledger is the only dated operating record; it shows the agent live and transacting (in test mode) daily through the fetch date.
+sla:
+  url: null
+  note: No SLA, support or contact page on either host (/support, /contact 404).

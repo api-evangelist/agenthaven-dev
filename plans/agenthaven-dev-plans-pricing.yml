@@ -1,0 +1,22 @@
+generated: '2026-09-19'
+method: searched
+source: https://travel.agenthaven.dev/
+docs:
+- https://agenthaven.dev/
+- https://travel.agenthaven.dev/health
+plan_count: 0
+currency: EUR
+model: proof of concept; no plans, no pricing, no paid access
+summary: >-
+  Agent Bench publishes no plans or pricing of any kind. The travel merchant is a proof of concept: quotes are
+  live Google Flights fares (via SerpApi) priced in EUR minor units, and checkout creates a payment intent in
+  Stripe TEST mode confirmed with a test card — "No real card is handled, no real money moves, and no ticket is
+  issued." There is no pricing page (/pricing 404 on both hosts), no signup, no account, and the only paid-looking
+  numbers on the surface are the demo's own limits (a 1000.00 EUR guest purchase ceiling, EUR spending caps
+  inside mandates), which are controls, not prices. Recorded as plan_count 0 so the absence is a measurement
+  rather than an omission.
+plans: []
+probed:
+- {url: 'https://agenthaven.dev/pricing', status: 404}
+- {url: 'https://travel.agenthaven.dev/pricing', status: 404}
+- {url: 'https://travel.agenthaven.dev/health', status: 200, note: 'official_demo true; payment_provider stripe; dependencies include stripe-test'}

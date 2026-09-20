@@ -1,0 +1,36 @@
+generated: '2026-09-19'
+method: searched
+probe: true
+source: https://agenthaven.dev/
+signals: {}
+probed:
+- {url: 'https://agenthaven.dev/privacy', status: 404}
+- {url: 'https://agenthaven.dev/terms', status: 404}
+- {url: 'https://agenthaven.dev/legal', status: 404}
+- {url: 'https://agenthaven.dev/accessibility', status: 404}
+- {url: 'https://agenthaven.dev/legal/subprocessors', status: 404}
+- {url: 'https://agenthaven.dev/legal/dpa', status: 404}
+- {url: 'https://agenthaven.dev/privacy/requests', status: 404}
+- {url: 'https://agenthaven.dev/transparency', status: 404}
+- {url: 'https://agenthaven.dev/security', status: 404}
+- {url: 'https://agenthaven.dev/security/sbom', status: 404}
+- {url: 'https://agenthaven.dev/ai/transparency', status: 404}
+- {url: 'https://agenthaven.dev/.well-known/security.txt', status: 404}
+- {url: 'https://travel.agenthaven.dev/privacy', status: 404}
+- {url: 'https://travel.agenthaven.dev/terms', status: 404}
+- {url: 'https://travel.agenthaven.dev/legal/subprocessors', status: 404}
+- {url: 'https://travel.agenthaven.dev/legal/dpa', status: 404}
+- {url: 'https://travel.agenthaven.dev/accessibility', status: 404}
+- {url: 'https://travel.agenthaven.dev/transparency', status: 404}
+- {url: 'https://travel.agenthaven.dev/security/sbom', status: 404}
+- {url: 'https://travel.agenthaven.dev/ai/transparency', status: 404}
+- {url: 'https://travel.agenthaven.dev/', status: 200, note: 'read in full; names the third parties in the request path (Google Flights via SerpApi, Stripe test mode, sealedby.dev mandates, provedby.dev verifiers, GoDaddy ANS) as operating facts, not as a subprocessor or privacy notice'}
+- {url: 'https://travel.agenthaven.dev/health', status: 200, note: 'dependencies [google-flights-serpapi, stripe-test, audit-log]; mandate_issuers; verifiers'}
+note: >-
+  Agent Bench publishes no privacy policy, terms, accessibility statement, subprocessor list, DPA, data-residency
+  statement, SBOM, AI-transparency page, DSAR channel, transparency report or security policy on either host —
+  every conventional path returns the site's JSON 404 and the two pages that exist (the zone index and the
+  agent's documentation) carry none of that substance. The empty signals map is the measurement. Two things a
+  reader might mistake for signals are deliberately NOT recorded: the public audit ledger at /ledger is a
+  transaction record, not a transparency report; and the documentation's naming of Stripe, SerpApi and
+  sealedby.dev describes the demo's plumbing, not a subprocessor disclosure. No regulatory pointer is emitted.

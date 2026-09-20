@@ -1,0 +1,15 @@
+generated: '2026-09-19'
+method: searched
+source: https://travel.agenthaven.dev/
+package_count: 0
+official_count: 0
+packages: []
+searched:
+- {registry: npm, query: agenthaven / agent-bench, result: none first-party}
+- {registry: pypi, query: dns-aid, result: 'dns-aid 0.28.1 — third-party (author "DNS-AID Contributors", homepage github.com/dns-aid/dns-aid-core, org site dns-aid.org). Named by the provider''s docs as the verification tool ("pip install dns_aid"), not an Agent Bench package.'}
+- {registry: github, query: 'github.com/agent-bench', result: 'an organization of that login exists with 0 public repositories, no website and no description (created 2026-06-06); nothing ties it to agenthaven.dev, so it is not recorded as this provider''s GitHub organization.'}
+- {registry: github, query: 'github.com/agenthaven', result: 404}
+- {source: 'https://travel.agenthaven.dev/', result: 'no SDK, client library, CLI or install command for the agent itself; the only code shown is curl against the two JSON-RPC doors and the third-party dns-aid CLI for verification'}
+note: >-
+  No first-party client library on any registry. The agent is meant to be called through generic A2A and MCP
+  clients; the provider ships schemas (tools/list) rather than SDKs. No SDKs or Packages pointer is emitted.

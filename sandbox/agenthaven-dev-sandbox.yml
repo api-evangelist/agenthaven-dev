@@ -1,0 +1,53 @@
+generated: '2026-09-19'
+method: searched
+source: https://travel.agenthaven.dev/
+docs:
+- https://travel.agenthaven.dev/health
+- https://provedby.dev/contracts/guest-buyer.md
+probed:
+- {url: 'https://travel.agenthaven.dev/health', status: 200, fetched: '2026-09-19', note: 'mode official, official_demo true, payment_provider stripe, dependencies [google-flights-serpapi, stripe-test, audit-log]'}
+- {url: 'https://travel.agenthaven.dev/mcp', method: POST tools/list, status: 200, fetched: '2026-09-19', note: 'anonymous; returns both tool schemas with examples'}
+summary: >-
+  The whole surface IS the sandbox: there is no live mode, no real card, no real money and no ticket. Anyone can
+  exercise the read half (search_flights) anonymously with no key, against real fares, inside a shared budget;
+  the write half (create_checkout) needs a bearer token the operator issues on request or a self-issued guest
+  mandate, and settles a Stripe TEST-mode PaymentIntent confirmed server-side with Stripe's published test
+  payment method pm_card_visa. Callers may label a call as a rehearsal with an `exercise` test-vector id, which
+  the merchant records but does not act on. Every run is auditable afterwards in the public ledger by
+  correlation_id. No test values are invented below; each is quoted from the provider's schemas or pages.
+test_vs_live:
+  separate_environment: false
+  live_mode_exists: false
+  key_prefixes: not applicable — no API keys
+  note: 'GET /health mode "official", official_demo true; docs: "Agent Bench is a proof of concept."'
+anonymous_rehearsal:
+  operation: search_flights (MCP tools/call, or A2A message/send)
+  auth: none
+  cost: free; draws on the shared anonymous budget of 40/day and 120/month
+  side_effects: writes quote.created entries (one per option) to the public ledger; mints signed quotes valid ten minutes
+  published_example_inputs: {origin: MAD, destination: LHR, departure_date: '2026-10-20', adults: 1}
+  example_source: tools/list inputSchema examples[] and the three curl examples on https://travel.agenthaven.dev/
+fixed_values:
+  merchant_id: demo-travel-seller (const; "Any other value is refused")
+  currency: EUR (const; "This merchant quotes in one currency and refuses the rest")
+  test_payment_method: pm_card_visa (Stripe's published test payment method; applied by the merchant server-side, not sent by the caller)
+  quote_id: 'no fixed example — "run search_flights first"; ids are q_ + UUID and expire in ten minutes'
+test_vector_labels:
+  parameter: exercise
+  pattern: '^[A-Z]{1,2}-[0-9]{2,3}[a-z]?$'
+  published_examples: [R-06, F-08]
+  semantics: '"stating that this call is an exercise. Copied into every ledger entry the call writes as facts.claimed_exercise, as your claim; it changes nothing about how the call is checked."'
+  note: A labelling convention for verifiers replaying test vectors, not a dry-run mode — a labelled call is checked, and refused, exactly like an unlabelled one.
+checkout_rehearsal:
+  operation: create_checkout
+  auth: bearer JWT (operator-issued on request, or a guest mandate under a DNSSEC-published key — see authentication/)
+  rails:
+    simulation: 'payment_intent.id starts with pi_sim_ and stays requires_payment_method; settlement.outcome simulated; charged false (schema description; 5 + 62 legacy/simulation entries in the ledger)'
+    stripe-test: 'a real test-mode pi_ confirmed with pm_card_visa, reaching succeeded; settlement.outcome captured; charged true "in Stripe test mode … never real money" (current rail per docs and /health)'
+  guest_limits: {ceiling: '1000.00 EUR per purchase', mandate_lifetime: '<= 10 minutes', purchases_per_day: 20 shared}
+  reference_buyer: 'https://provedby.dev/contracts/guest-buyer.md — "Contract, vector and a one-file reference buyer" (third-party host named by the provider; 200 on 2026-09-19)'
+audit:
+  ledger: https://travel.agenthaven.dev/ledger
+  how: Join your correlation_id across quote.created, payment_intent.created, checkout.completed and request.refused entries; facts.claimed_exercise shows your own label.
+verification_tooling:
+  dns_aid_cli: 'pip install dns_aid; dns-aid discover agenthaven.dev --verify-signatures; dns-aid verify travel.agenthaven.dev (docs "Verify it yourself"). Third-party reference implementation (PyPI dns-aid 0.28.1, github.com/dns-aid), not an Agent Bench package.'

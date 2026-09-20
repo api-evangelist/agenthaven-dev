@@ -1,0 +1,17 @@
+generated: '2026-09-19'
+method: generated
+source: >-
+  tools/list from https://travel.agenthaven.dev/mcp (both tool names, parameters, constants and windows
+  verified against the verbatim copy in mcp/agenthaven-dev-mcp-tools.json) plus the agent card and the
+  documentation page at https://travel.agenthaven.dev/. Agent Bench publishes no skills, AGENTS.md or llms.txt of
+  its own (probed 2026-09-19; /llms.txt 404 on both hosts). There is no OpenAPI, so the skill is grounded in the
+  MCP tool contract and the A2A actions of the same names instead of operationIds.
+skills:
+- file: agenthaven-dev-search-and-checkout.md
+  name: agenthaven-dev-search-and-checkout
+  method: generated
+  description: Quote a flight with search_flights and, with a bearer authorization, turn one quote into a test-mode payment intent with create_checkout — inside the ten-minute quote window and the single-use mandate rules.
+  api: mcp/agenthaven-dev-mcp.yml
+  operations: 2
+  operation_ids: [search_flights, create_checkout]
+  protocols: [MCP, A2A]

@@ -1,0 +1,117 @@
+generated: '2026-09-19'
+method: probed
+status: published
+source: https://travel.agenthaven.dev/mcp
+docs: https://travel.agenthaven.dev/
+summary: >-
+  Agent Bench operates ONE remote MCP server at https://travel.agenthaven.dev/mcp, on the same host as its A2A
+  JSON-RPC endpoint (/a2a) and its documentation. It is POST-only Streamable HTTP without server-initiated
+  streams (a GET returns 405 {"error":{"code":"sse_unsupported","message":"This MCP endpoint does not open
+  server-initiated streams. POST JSON-RPC messages instead."}}), speaks MCP protocol version 2025-06-18,
+  identifies itself as serverInfo {name: agent-bench-travel-merchant, version: 0.1.0}, and answers initialize
+  and tools/list anonymously with two tools carrying full JSON Schema inputSchema AND outputSchema (draft-07),
+  with examples, patterns and const constraints. resources/list and prompts/list return -32601 with a message
+  naming the implemented set: "initialize, ping, tools/list and tools/call". The server is provider-built —
+  the tool names, the merchant_id const "demo-travel-seller" and the mandate/ledger vocabulary match no shared
+  platform fingerprint. The A2A agent card advertises this endpoint in supportedInterfaces[1] and delegates
+  its skill schemas to it. This is the machine-readable contract for the provider: there is no OpenAPI.
+deployment:
+  mode: remote
+  endpoint: https://travel.agenthaven.dev/mcp
+  auth: none
+  verified: probed
+  note: >-
+    A hosted HTTPS endpoint an MCP client POSTs to directly; no stdio package, no npx/uvx install is
+    documented. auth is "none" in the connection sense — initialize, ping, tools/list and the search_flights
+    tool need no credential, and no OAuth metadata is served (/.well-known/oauth-authorization-server 404;
+    /.well-known/oauth-protected-resource answers "This merchant has no authorization server configured").
+    The create_checkout tool alone requires Authorization: Bearer <JWT> in one of the two forms the card's
+    securitySchemes.bearer describes (a self-signed request envelope plus a sealedby.dev mandate, or an
+    operator-issued JWT with scope commerce:purchase); there is no public token endpoint. See
+    authentication/agenthaven-dev-authentication.yml.
+servers:
+- id: travel-merchant
+  name: Agent Bench Travel Merchant
+  endpoint: https://travel.agenthaven.dev/mcp
+  alias_endpoints:
+  - https://dns-aid.agenthaven.dev/mcp
+  transport: streamable-http
+  http_methods: [POST]
+  auth: none for initialize / ping / tools/list / search_flights; bearer JWT for create_checkout
+  status: live
+  probe:
+    fetched: '2026-09-19'
+    initialize:
+      http_status: 200
+      protocol_version: '2025-06-18'
+      server_info: {name: agent-bench-travel-merchant, version: 0.1.0}
+      capabilities: {tools: {listChanged: false}}
+      instructions: >-
+        Two operations, called in order. search_flights returns up to two quotes valid ten minutes, labelled
+        cheapest and fastest, each with its itinerary; create_checkout turns the chosen quote into a payment
+        intent and stops there — nothing is charged and no ticket is issued. Airport codes are IATA uppercase.
+        Authorization: Needed for create_checkout only; search_flights and tools/list are open. There is no
+        public token endpoint. Two forms are accepted. (1) Sign each call as a request envelope (Authorization:
+        Bearer <compact JWS, typ request+jwt>) under a key attested at /.well-known/agent-keys.json on your own
+        domain, and present at checkout a mandate from an authority this merchant trusts (https://sealedby.dev),
+        bound to the quote and to that key. (2) A JWT issued by this merchant's operator on request: iss
+        agent-bench-demo-issuer, aud agent-bench, scope commerce:purchase, with a spending cap in EUR.
+        Documentation: https://travel.agenthaven.dev/
+    tools_list:
+      http_status: 200
+      content_type: application/json
+      tool_count: 2
+      file: mcp/agenthaven-dev-mcp-tools.json
+      schemas: inputSchema and outputSchema on both tools (JSON Schema draft-07 declared on outputSchema)
+    resources_list: {http_status: 200, error: '-32601 Unknown method "resources/list". This server implements initialize, ping, tools/list and tools/call.'}
+    prompts_list: {http_status: 200, error: '-32601 Unknown method "prompts/list". This server implements initialize, ping, tools/list and tools/call.'}
+    get_request: {http_status: 405, body: '{"error":{"code":"sse_unsupported","message":"This MCP endpoint does not open server-initiated streams. POST JSON-RPC messages instead."}}'}
+    tools_call: not exercised — this pipeline reads contracts; it does not search fares or create payment intents on a provider's behalf.
+  authorship: provider
+  tools:
+  - name: search_flights
+    read_only: true
+    auth: none
+    cost: free; anonymous calls draw on a shared budget of 40 per day and 120 per month (an authorised search never counts)
+    a2a_action: search_flights
+    input_schema:
+      origin: 'string, ^[A-Z]{3}$ (IATA airport code, uppercase) — required'
+      destination: 'string, ^[A-Z]{3}$ — required'
+      departure_date: 'string, ^\d{4}-\d{2}-\d{2}$ (ISO 8601 calendar date, in the future) — required'
+      adults: 'integer >= 1, default 1'
+      correlation_id: 'string, uuid v4 lowercase — optional; echoed into every ledger entry the call writes'
+      exercise: 'string, ^[A-Z]{1,2}-[0-9]{2,3}[a-z]?$ — optional test-vector id (R-06, F-08); recorded as the caller''s claim, changes nothing'
+    output_schema: 'correlation_id, request_id, quote (first option, legacy), options[1..2] {id, basis[cheapest|fastest], offer_id, total (minor units), currency const EUR, itinerary {segments[], layovers[], stops, total_duration_minutes}, expires_at, quote_jws (typ quote+jwt), quote_hash (sha256 hex), audit_hash}, evidence {merchant_id const demo-travel-seller, merchant_domain const travel.agenthaven.dev, agent_card_sha256, provider, fallback?, signer {spiffe_id, kid, key_url}, audit_hash}'
+    description: >-
+      First step. Search flight offers for one route on one date; no authorization needed. Returns up to two
+      options, each a quote valid for ten minutes: the cheapest fare and the fastest journey (one option
+      carrying both labels when they coincide), with itinerary — flight numbers, airline, airports, local
+      departure and arrival times, stops — and fare in minor units. Choose one; its id is the input to
+      create_checkout.
+  - name: create_checkout
+    read_only: false
+    auth: bearer JWT (see securitySchemes.bearer in the agent card)
+    cost: 'a payment intent in Stripe TEST mode, confirmed with Stripe''s published test card pm_card_visa; no real money, no ticket'
+    a2a_action: create_checkout
+    input_schema:
+      quote_id: 'string — required; options[].id from search_flights (q_ + UUID), within ten minutes; an id the seller did not mint is refused as quote_unavailable'
+      quote_hash: 'string, ^[0-9a-f]{64}$ — optional; the seller recomputes and refuses a mismatch'
+      merchant_id: 'string const "demo-travel-seller" — required; any other value is refused'
+      currency: 'string const "EUR" — required; ISO 4217; any other value is refused'
+      correlation_id: 'string, uuid v4 lowercase — optional'
+      mandate_jws: 'string, compact JWS — required when the call is a signed request envelope (typ request+jwt): the cart-stage mandate (typ mandate+jwt) bound to quote_hash and to the envelope key'
+      exercise: 'string — optional test-vector id'
+    output_schema: 'correlation_id, request_id, checkout {quote_id, quote_hash, merchant_id, currency, amount, offer_id, basis, itinerary}, payment_intent {source, id, status, idempotency_key}, settlement {rail (simulation|stripe-test), outcome (simulated|intent_created|captured), payment_status, charged}, receipt_jws (typ receipt+jwt), evidence {merchant_id, merchant_domain, agent_card_sha256, quote_hash, signer, audit_hash, completion_hash}'
+    description: >-
+      Second step, after search_flights. quote_id is the id of one of its options (options[].id, q_ followed
+      by a UUID), valid ten minutes; there is no fixed example, and an id search_flights did not mint is
+      refused as quote_unavailable. Needs a bearer authorization (see the agent card's securitySchemes.bearer
+      for where one comes from). Turns the quote into a payment intent and stops there: no ticket is issued. A
+      PaymentIntent is created at Stripe in test mode and confirmed with a test card (pm_card_visa); it
+      succeeds and captures. Test mode: no real card, no real money.
+tool_count: 2
+crosswalk: >-
+  No tool crosswalk is emitted: the provider publishes no OpenAPI, GraphQL or REST reference to bind the tools
+  to. The two tools are the two A2A skills (flight-search -> search_flights, travel-checkout ->
+  create_checkout) — the card and the A2A error data both say the schemas live here. See
+  a2a/agenthaven-dev-a2a.yml surface_relationship.

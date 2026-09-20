@@ -1,0 +1,113 @@
+generated: '2026-09-19'
+method: searched
+source: https://travel.agenthaven.dev/
+derived_from:
+- mcp/agenthaven-dev-mcp-tools.json
+- a2a/agenthaven-dev-agent-card.json
+- https://travel.agenthaven.dev/ledger (reading guide + 639 observed entries)
+- https://travel.agenthaven.dev/health
+docs:
+- https://travel.agenthaven.dev/
+- https://provedby.dev/contracts/guest-buyer.md
+base_url: https://travel.agenthaven.dev
+media_type: application/json
+transport:
+  style: JSON-RPC 2.0 over HTTPS POST on two doors — /a2a (A2A message/send) and /mcp (MCP initialize, ping, tools/list, tools/call); no REST resource paths
+  get_on_rpc_endpoints: 405 with a JSON error naming the rule ("/a2a answers POST only."; "This MCP endpoint does not open server-initiated streams.")
+  unknown_route: '404 {"error":{"code":"not_found","message":"Route not found."},"request_id":"…"}'
+  streaming: none (capabilities.streaming false; no SSE)
+auth:
+  style: >-
+    Anonymous for discovery and search; a bearer JWT for the single write. Two accepted token forms — a
+    self-signed per-call request envelope (typ request+jwt) plus a third-party mandate (typ mandate+jwt), or an
+    operator-issued JWT with scope commerce:purchase and an EUR cap. No token endpoint, no API keys, no OAuth.
+  detail: authentication/agenthaven-dev-authentication.yml
+operations:
+  read: [search_flights]
+  write: [create_checkout]
+  note: Two operations total; create_checkout is the only mutating call and the only authenticated one. The read-only JSON documents (/health, /ledger, /.well-known/*) are plain GETs.
+request_tracing:
+  response_header: x-request-id (observed on every response from both hosts, including 404s)
+  body_field: request_id — present in every error envelope and in both tool outputs ("The seller's id for this call. Cite it when reporting a problem.")
+  correlation: >-
+    correlation_id (UUID v4, lowercase) is an optional input on both tools: "one per transaction; omit it and
+    the seller mints one. Echoed into every ledger entry this call writes so the chains can be joined." The
+    ledger records correlation_source buyer|seller.
+  exercise_label: 'exercise (^[A-Z]{1,2}-[0-9]{2,3}[a-z]?$, e.g. R-06, F-08) marks a call as a test vector; copied to ledger facts.claimed_exercise "as your claim; it changes nothing about how the call is checked".'
+idempotency:
+  coverage: full
+  scope: [create_checkout]
+  mechanism: mandate-bound single use, not a caller-supplied header
+  header: none
+  detail: >-
+    The one write is replay-protected by the mandate it spends. The guest-buyer contract states the mandate
+    jti is "16 characters or more, never reused: the mandate buys once"; a second create_checkout under a spent
+    mandate is refused as request.refused reason mandate_consumed (step 9), which the public ledger shows 19
+    times, with facts.first_use recording the request_id that consumed it. Toward the payment rail the seller
+    uses an idempotency key it reports back as payment_intent.idempotency_key in the create_checkout output,
+    and the ledger reading guide defines the ambiguous case: payment.ambiguous — "The rail did not answer,
+    twice. Nothing is known to have happened; the mandate stays retryable with the same idempotency key, so a
+    retry finds the intent if one exists." A quote_id is likewise single-use per mandate and expires ten
+    minutes after search_flights (options[].expires_at). search_flights is read-only and idempotent by nature,
+    though each call mints new signed quotes.
+  retention: quote 10 minutes (expires_at); guest mandate lifetime at most 600 s (health guests.mandate_max_seconds); mandate first-use is recorded in the append-only ledger indefinitely
+  sources:
+  - https://provedby.dev/contracts/guest-buyer.md — "jti … never reused: the mandate buys once"
+  - https://travel.agenthaven.dev/ledger — reading.entries.payment.ambiguous; 19 request.refused entries with facts.reason mandate_consumed
+  - mcp/agenthaven-dev-mcp-tools.json — create_checkout outputSchema payment_intent.idempotency_key
+  caveat: >-
+    "full" here means the mechanism covers 1 of 1 mutating operations. It is not a Stripe-shaped
+    Idempotency-Key header a client chooses; the replay key is the mandate's jti and the retry contract is
+    stated only for the ambiguous-rail case. A client that wants classic idempotent retry must reuse the same
+    mandate and quote within their windows.
+reversibility:
+  grade: none
+  write_surface:
+  - operation: create_checkout
+    effect: creates a payment intent (simulation rail) or creates and confirms a test-mode Stripe PaymentIntent with pm_card_visa, which "succeeds and captures" (stripe-test rail); marks the mandate spent; writes payment_intent.created and checkout.completed to the ledger
+    reversal_operation: null
+    window: null
+    note: >-
+      No cancel, refund, void or reverse operation exists on either door — tools/list returns exactly two tools
+      and the A2A error data names exactly two actions. The docs say the flow "stops there — nothing is charged
+      and no ticket is issued", yet the settlement schema and the ledger show a captured test-mode intent. The
+      ten-minute quote expiry and the mandate's spending cap, currency and deadline are PRE-commit controls,
+      not a way back. Because the whole system is a proof of concept in Stripe test mode, an unreversed checkout
+      costs no money; the contract still documents no way to undo one.
+  dry_run: none — the `exercise` parameter labels a call as a rehearsal but "changes nothing about how the call is checked"; anonymous search_flights is the rehearsable half (no auth, no side effect beyond a ledger quote entry)
+  sources:
+  - mcp/agenthaven-dev-mcp-tools.json (two tools; settlement.outcome enum simulated|intent_created|captured)
+  - https://travel.agenthaven.dev/ — "turns the chosen quote into a payment intent and stops there"
+pagination:
+  style: na — no list operations; search_flights returns at most two options by design (maxItems 2)
+versioning:
+  scheme: version carried in the agent card (0.1.0), the MCP serverInfo (0.1.0) and the build string in GET /health (v0.1.0-79-g6bcffd3); protocol versions pinned per interface (A2A "0.3", MCP "2025-06-18"); no version segment in paths
+  detail: lifecycle/agenthaven-dev-lifecycle.yml
+error_envelope:
+  rest: '{"error":{"code":"<snake_case>","message":"<sentence>"},"request_id":"<uuid>"} on application/json — observed codes not_found, method_not_allowed, sse_unsupported'
+  jsonrpc: '{"jsonrpc":"2.0","id":…,"error":{"code":-32601,"message":"…","data":{"acceptedParts":["data"],"actions":[…],"schemas":"…"}}} — observed on /a2a and /mcp'
+  refusals: 'A check that refuses a call is written to the public ledger as type request.refused with facts.reason (code), facts.step (which check) and facts.operation; "A refusal is the merchant working, not failing."'
+  detail: errors/agenthaven-dev-problem-types.yml
+rate_limit_signaling:
+  headers: none documented or observed (no RateLimit-*, X-RateLimit-*, Retry-After)
+  documented_limits: anonymous searches 40/day and 120/month; guest purchases 20/day; guest ceiling 1000.00 EUR per purchase
+  runtime_signal: 'GET /health counters.anonymous_searches {used_today, used_this_month, per_day, per_month} — a live, unauthenticated, machine-readable budget readout; exhaustion appears in the ledger as request.refused reason search_budget_exhausted (observed twice)'
+  detail: rate-limits/agenthaven-dev-rate-limits.yml
+data_conventions:
+  airports: IATA three-letter codes, uppercase (^[A-Z]{3}$) — "MAD", not "Madrid"
+  dates: ISO 8601 calendar date YYYY-MM-DD for departure_date; local times "YYYY-MM-DDTHH:MM" with no offset in itineraries; RFC 3339 date-time for expires_at
+  money: integer minor units (total, amount); currency ISO 4217, const EUR
+  ids: quote ids q_<uuid>; correlation_id and request_id UUID v4 lowercase; merchant_id const demo-travel-seller
+  hashes: SHA-256 lowercase hex (quote_hash, audit_hash, completion_hash, agent_card_sha256); "Recompute it; never trust it."
+  signed_objects: compact JWS with typed JWT headers — quote+jwt, receipt+jwt, request+jwt, mandate+jwt; all ES256 P-256
+  evidence_block: every tool output carries evidence {merchant_id, merchant_domain, agent_card_sha256, signer {spiffe_id, kid, key_url}, audit_hash} so a caller can verify the responder against DNS-AID, the SVID bundle and the ledger
+audit:
+  ledger: https://travel.agenthaven.dev/ledger
+  shape: append-only, hash-chained (previous_hash/hash), ES256-signed per instance, canonicalised with RFC 8785 JCS; seven entry types documented in the response's reading block
+  verification_note: '"This chain is evidence, not a verdict. For a verdict read the verifier''s signed scorecard" — verifiers: https://provedby.dev (health.verifiers)'
+cross_links:
+  errors: errors/agenthaven-dev-problem-types.yml
+  lifecycle: lifecycle/agenthaven-dev-lifecycle.yml
+  authentication: authentication/agenthaven-dev-authentication.yml
+  rate_limits: rate-limits/agenthaven-dev-rate-limits.yml
+  sandbox: sandbox/agenthaven-dev-sandbox.yml

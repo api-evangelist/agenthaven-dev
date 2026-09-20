@@ -1,0 +1,82 @@
+generated: '2026-09-19'
+method: derived
+source: mcp/agenthaven-dev-mcp-tools.json
+derived_from:
+- tools/list inputSchema and outputSchema of search_flights and create_checkout (JSON Schema draft-07)
+- GET https://travel.agenthaven.dev/ledger (entry types, facts fields, signer)
+- GET https://travel.agenthaven.dev/.well-known/spiffe-svid.json
+note: >-
+  No OpenAPI exists; the entity graph is read from the MCP tool schemas — the provider's only machine-readable
+  contract — and from the shape of the public ledger. Field names are the provider's; nothing is inferred beyond
+  what the schemas declare or the ledger contains.
+entities:
+- name: Merchant
+  id_field: merchant_id
+  id_form: const "demo-travel-seller"
+  fields: [merchant_id, merchant_domain (const travel.agenthaven.dev), agent_card_sha256]
+  source: evidence block on both tool outputs; /health identity
+- name: Quote
+  id_field: id
+  id_prefix: q_
+  id_form: q_ followed by a UUID
+  fields: [id, 'basis[] (cheapest|fastest)', offer_id, total (integer, EUR minor units), currency (const EUR), itinerary, expires_at (date-time, +10 min), quote_jws (typ quote+jwt), quote_hash (sha256 hex), audit_hash]
+  lifetime: ten minutes
+  source: search_flights outputSchema options[] (and the legacy single quote field)
+- name: Itinerary
+  fields: ['segments[]', 'layovers[]', stops, total_duration_minutes]
+  source: search_flights outputSchema options[].itinerary; repeated in create_checkout outputSchema checkout.itinerary
+- name: Segment
+  fields: [flight_number, airline, 'departure {airport, airport_name, local_time}', 'arrival {airport, airport_name, local_time}', duration_minutes, aircraft, travel_class]
+- name: Layover
+  fields: [airport, airport_name, duration_minutes, overnight]
+- name: Checkout
+  fields: [quote_id, quote_hash, merchant_id, currency, amount, offer_id, 'basis[]', itinerary]
+  source: create_checkout outputSchema checkout
+- name: PaymentIntent
+  id_field: id
+  id_prefix: 'pi_ (stripe-test) or pi_sim_ (simulation)'
+  fields: [source, id, status, idempotency_key]
+  source: create_checkout outputSchema payment_intent
+- name: Settlement
+  fields: [rail (simulation|stripe-test), outcome (simulated|intent_created|captured), payment_status, charged]
+  source: create_checkout outputSchema settlement
+- name: Receipt
+  form: compact JWS, typ receipt+jwt, signed by the instance key; cites quote_hash, the payment intent and the ledger entry
+  source: create_checkout outputSchema receipt_jws
+- name: Mandate
+  id_field: jti
+  external: true
+  fields: [jti (>=16 chars, single use), issuer (health mandate_issuers; guests self-issue), format (ledger facts.mandate_format ap2-v0.2), stage (ap2), bound_to (quote_hash + envelope key), ttl (<=600 s for guests)]
+  source: create_checkout inputSchema mandate_jws; ledger checkout.completed facts; guest-buyer contract
+- name: Signer
+  id_field: spiffe_id
+  fields: [spiffe_id, kid, key_url, public_jwk]
+  source: evidence.signer on both outputs; /.well-known/spiffe-svid.json; ledger.signer
+- name: LedgerEntry
+  id_field: hash
+  fields: [at, type, correlation_id, facts, previous_hash, hash, signature]
+  types: [quote.created, payment_intent.created, checkout.completed, request.refused, payment.ambiguous, commerce.quote.created (legacy), commerce.payment_intent.created (legacy)]
+  source: GET /ledger (639 entries at fetch); canonicalization RFC 8785 JCS
+- name: Transaction
+  id_field: correlation_id
+  id_form: UUID v4 lowercase, buyer-minted or seller-minted (ledger facts.correlation_source)
+  note: Not an object the API returns; the join key across a search, a checkout and their ledger entries.
+relationships:
+- {from: Quote, to: Merchant, type: belongs_to, via: evidence.merchant_id}
+- {from: Quote, to: Itinerary, type: has_one, via: itinerary (nullable)}
+- {from: Itinerary, to: Segment, type: has_many, via: 'segments[]'}
+- {from: Itinerary, to: Layover, type: has_many, via: 'layovers[]'}
+- {from: Checkout, to: Quote, type: belongs_to, via: quote_id / quote_hash}
+- {from: Checkout, to: PaymentIntent, type: has_one, via: payment_intent}
+- {from: Checkout, to: Settlement, type: has_one, via: settlement}
+- {from: Checkout, to: Receipt, type: has_one, via: receipt_jws}
+- {from: Checkout, to: Mandate, type: belongs_to, via: mandate_jws (input) / ledger facts.jti}
+- {from: Mandate, to: Quote, type: bound_to, via: quote_hash}
+- {from: Quote, to: LedgerEntry, type: has_one, via: audit_hash (quote.created)}
+- {from: Checkout, to: LedgerEntry, type: has_many, via: 'evidence.audit_hash (payment_intent.created), evidence.completion_hash (checkout.completed)'}
+- {from: LedgerEntry, to: LedgerEntry, type: belongs_to, via: previous_hash (hash chain)}
+- {from: LedgerEntry, to: Signer, type: belongs_to, via: signer}
+- {from: Quote, to: Signer, type: signed_by, via: evidence.signer / quote_jws}
+- {from: Receipt, to: Signer, type: signed_by, via: evidence.signer}
+- {from: Transaction, to: LedgerEntry, type: has_many, via: correlation_id}
+- {from: Signer, to: Merchant, type: belongs_to, via: 'spiffe_id path /merchant/demo-travel-seller/<instance>'}

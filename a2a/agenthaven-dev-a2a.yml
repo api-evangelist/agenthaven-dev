@@ -1,0 +1,182 @@
+generated: '2026-09-19'
+method: probed
+source: https://travel.agenthaven.dev/.well-known/agent-card.json
+card:
+  file: a2a/agenthaven-dev-agent-card.json
+discovery:
+  path: /.well-known/agent-card.json
+  canonical: true
+  host: travel.agenthaven.dev
+  note: >-
+    Agent Bench does not serve the card from its apex. agenthaven.dev is a DNS-AID zone index page whose every
+    /.well-known/* path returns the same JSON 404 ({"error":{"code":"not_found","message":"Route not found."}},
+    111 bytes) — including both agent-card paths — and www.agenthaven.dev 301s everything to the apex. The card
+    lives on the agent's own host, travel.agenthaven.dev, at the canonical path; the legacy
+    /.well-known/agent.json on that host returns a byte-identical copy (2,905 bytes). dns-aid.agenthaven.dev is
+    an alias of the same origin and serves the same card. A negative-control path
+    (/.well-known/apievangelist-negative-control-7f3a9c.json) 404s on every host, so the 200 is a served
+    document and not a catch-all. The card is additionally pinned OUT OF BAND: the SVCB record at
+    travel.agenthaven.dev (DNSSEC-signed, ECDSAP256SHA256, DS at the parent) carries key65400 = the card URL,
+    key65401 = its SHA-256 digest (sWJzLIPAuM_xhwpvjtKYy3xJ6VI75YPZo6gxYFJ2xr0) and key65405 = an ES256 JWS
+    over the record; the digest we computed over the fetched bytes matches, and matches the hex form
+    (b162732c…76bd) that GET /health reports as identity.agent_card_sha256.
+  ownership: >-
+    The card's provider.organization is "Agent Bench" with provider.url https://agenthaven.dev — the
+    registrable domain this profile is keyed on — and its url, documentationUrl and both supportedInterfaces
+    point at travel.agenthaven.dev in the same zone. The MCP server on that host identifies itself as
+    serverInfo {agent-bench-travel-merchant, 0.1.0} and the ARD catalog's host.displayName is "Agent Bench".
+    Ownership is not in question. The company name in this record ("Agent Bench") comes from the card and the
+    a2aregistry.org listing; the domain is agenthaven.dev, hence the slug.
+x-evidence:
+  fetched: '2026-09-19'
+  url: https://travel.agenthaven.dev/.well-known/agent-card.json
+  http_status: 200
+  content_type: application/json
+  body_bytes: 2905
+  body_sha256: b162732c83c0b8cff1870a6f8ed298cb7c49e9523be583d9a3a831605276c6bd
+  body_parses_as: JSON object with AgentCard shape (name, description, url, provider, documentationUrl, version, protocolVersion, preferredTransport, supportedInterfaces, capabilities, defaultInputModes, defaultOutputModes, skills, securitySchemes)
+  corroborating_probes:
+  - url: https://travel.agenthaven.dev/.well-known/agent.json
+    http_status: 200
+    note: Legacy path; byte-identical to the canonical document.
+  - url: https://agenthaven.dev/.well-known/agent-card.json
+    http_status: 404
+    note: The apex serves the zone index only; the card is per-agent.
+  - url: https://agenthaven.dev/.well-known/agent.json
+    http_status: 404
+  - url: https://www.agenthaven.dev/.well-known/agent-card.json
+    http_status: 301
+    note: Redirects to https://agenthaven.dev/.well-known/agent-card.json (404).
+  - url: https://travel.agenthaven.dev/a2a
+    http_status: 405
+    note: 'GET on the declared JSON-RPC endpoint returns {"error":{"code":"method_not_allowed","message":"/a2a answers POST only."}}.'
+  - url: https://travel.agenthaven.dev/a2a
+    method: POST
+    body: '{"jsonrpc":"2.0","id":1,"method":"agent/getAuthenticatedExtendedCard"}'
+    http_status: 200
+    response: '{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"Method \"agent/getAuthenticatedExtendedCard\" is not supported. This agent answers message/send only.","data":{"acceptedParts":["data"],"actions":["search_flights","create_checkout"],"schemas":"POST tools/list to https://travel.agenthaven.dev/mcp"}}}'
+    note: A real JSON-RPC 2.0 responder that names its one supported method and its two actions in the error data. No message was sent and nothing was searched or purchased.
+  - url: dns:travel.agenthaven.dev?TYPE=SVCB
+    note: 'SVCB priority 1, target travel.agenthaven.dev, alpn "a2a", port 443, key65400 https://travel.agenthaven.dev/.well-known/agent-card.json, key65401 (card digest) sWJzLIPAuM_xhwpvjtKYy3xJ6VI75YPZo6gxYFJ2xr0, key65402 "a2a", key65405 an ES256 compact JWS with kid dnsaid-2026-09 (verification key served at https://dns-aid.agenthaven.dev/.well-known/dns-aid-jwks.json and at the apex), key65409 "agent-card.json". Resolver 1.1.1.1 returned the AD flag; DS 2371 13 2 at the parent; TXT "capabilities=travel-checkout" "version=1.0.0"; TLSA 3 1 1 and 3 0 1 at _443._tcp.travel.agenthaven.dev.'
+  - url: dns:_index._agents.agenthaven.dev?TYPE=TXT
+    note: '"agents=travel:a2a,car-rental:a2a,hotel:a2a" — the DNS-AID zone index names three agents, but car-rental.agenthaven.dev and hotel.agenthaven.dev have no A, TXT or SVCB record (NOERROR, empty answer) and do not connect. Only the travel agent is published; the apex index page says the same ("It lists only what the zone actually publishes").'
+  - url: https://api.godaddy.com/v1/ans/registered-agents/9a311416-b877-4f0d-8ee5-1d63d047e82f
+    http_status: 200
+    note: 'Third-party corroboration: a GoDaddy Agent Name Service registration for ans://v0.1.0.travel.agenthaven.dev, agentHost travel.agenthaven.dev, lifecycle ACTIVE, indexed 2026-09-19, expires 2026-11-25, transparency-log leaf 199068 with a Merkle receipt at transparency.ans.godaddy.com. ANS scores it 55/100 after a 10-point "invalid_card_data" penalty that its own crawler explains as a relative metaDataUrl it could not resolve — the card fetches fine at the absolute URL above.'
+  - url: https://a2aregistry.org
+    note: The card was first seen as one of 415 agents listed on a2aregistry.org (fetched 2026-09-19, author "Agent Bench"), which is how this provider entered the harvest backlog. The registry listing was the lead; the card above was fetched directly from the provider's host.
+agent_card:
+  name: Agent Bench Travel Merchant
+  description: >-
+    Seller agent for flight search and travel checkout. Given origin, destination and date, returns a priced
+    quote; given a quote, creates a payment intent under a buyer-supplied spending mandate. Proof of concept:
+    payment is simulated and no ticket is issued.
+  url: https://travel.agenthaven.dev/a2a
+  version: 0.1.0
+  protocol_version: '0.3'
+  preferred_transport: JSONRPC
+  provider:
+    organization: Agent Bench
+    url: https://agenthaven.dev
+  documentation_url: https://travel.agenthaven.dev/
+  supported_interfaces:
+  - {url: 'https://travel.agenthaven.dev/a2a', transport: JSONRPC, protocolBinding: JSONRPC, protocolVersion: '0.3'}
+  - {url: 'https://travel.agenthaven.dev/mcp', transport: JSONRPC, protocolBinding: MCP, protocolVersion: '2025-06-18'}
+  capabilities:
+    streaming: false
+  default_input_modes: [application/json]
+  default_output_modes: [application/json]
+  security_schemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      summary: >-
+        Needed for create_checkout only; search_flights and tools/list are open. No public token endpoint. Two
+        accepted forms — (1) a per-call request envelope (compact JWS, typ request+jwt) signed under a key
+        attested at /.well-known/agent-keys.json on the CALLER's own domain, plus a checkout mandate from an
+        authority the merchant trusts (https://sealedby.dev) bound to the quote and to that key; (2) a JWT
+        issued by the merchant's operator on request (iss agent-bench-demo-issuer, aud agent-bench, scope
+        commerce:purchase, EUR spending cap).
+  skill_count: 2
+  skills:
+  - {id: flight-search, name: Flight search, tags: [flights, flight-search, travel, quote], security: none, mcp_tool: search_flights}
+  - {id: travel-checkout, name: Travel checkout, tags: [travel, checkout, payment-intent], security: 'bearer [commerce:purchase]', mcp_tool: create_checkout}
+  skill_invocation: >-
+    Each skill description states its A2A invocation exactly: message/send with one DataPart
+    {"action":"search_flights","input":{"origin":"MAD","destination":"LHR","departure_date":"YYYY-MM-DD"}} or
+    {"action":"create_checkout","input":{"quote_id":"…","merchant_id":"…","currency":"…"}}, or a TextPart
+    carrying the one-line command "search_flights MAD LHR YYYY-MM-DD" / "create_checkout <quote_id>". The
+    machine-readable input schemas are not in the card; the card delegates them to tools/list on the MCP
+    interface, which answers anonymously (see mcp/agenthaven-dev-mcp.yml).
+conformance:
+  spec: A2A 1.0.0
+  grade: conformant
+  protocol_version: '0.3'
+  preferred_transport: JSONRPC
+  hard_checks:
+    capabilities_is_object: true
+    protocol_version_present: true
+    skills_is_array: true
+  optional_fields:
+    preferred_transport: true
+    default_input_modes: true
+    default_output_modes: true
+  grade_basis: >-
+    Graded against the A2A 1.0.0 hard checks. capabilities is an OBJECT (pass) — {streaming: false} — with
+    pushNotifications and stateTransitionHistory left to their false defaults. protocolVersion is present at
+    the top level (pass), declared as "0.3". skills is an ARRAY (pass) of two fully-described skills, each
+    with id, name, description and tags, and the checkout skill carrying a per-skill security requirement.
+    All three optional discriminators are present: preferredTransport JSONRPC, defaultInputModes and
+    defaultOutputModes both application/json. The endpoint was confirmed live as a JSON-RPC 2.0 responder.
+  deviations:
+  - field: protocolVersion
+    observed: '"0.3"'
+    note: Two-component string. The A2A specification versions are written "0.3.0"; a strict semver comparison against "0.3.0" fails on the literal while the meaning is unambiguous.
+  - field: supportedInterfaces[] alongside top-level url / preferredTransport
+    observed: both shapes at once
+    note: >-
+      The card carries the 0.3-era top-level triple (url, preferredTransport, protocolVersion) AND a
+      1.0-style supportedInterfaces[] block with protocolBinding — a mixed-generation card that reads under
+      either revision. Recorded because both shapes coexist in the catalog, not as a fault.
+  - field: supportedInterfaces[1].protocolBinding
+    observed: '"MCP" with protocolVersion "2025-06-18"'
+    note: >-
+      Not an A2A transport binding (the spec enumerates JSONRPC, GRPC and HTTP+JSON). The card is using the
+      interface list to advertise its Model Context Protocol endpoint on the same host, which an A2A client
+      iterating supportedInterfaces will not know how to speak. Useful to a reader; outside the spec's
+      vocabulary. The MCP server is real and open — see mcp/agenthaven-dev-mcp.yml.
+  - field: skills[1].security
+    observed: '[{"bearer":["commerce:purchase"]}] against an http-bearer scheme'
+    note: >-
+      Scope lists are defined for oauth2 and openIdConnect schemes; against an http scheme the string is a
+      JWT scope claim by convention. The securitySchemes.bearer description explains it (scope
+      commerce:purchase in an operator-issued JWT), so the intent is recoverable from the card.
+  - field: signatures
+    observed: absent from the card
+    note: >-
+      The card carries no in-card JWS signature block. Its integrity binding is external and stronger than most
+      in the catalog: the SHA-256 digest and an ES256 signature over the discovery record live in a
+      DNSSEC-signed SVCB record (DNS-AID), the ARD catalog repeats the digest, and /health reports it. An A2A
+      reader that only looks inside the card will see an unsigned card.
+  - field: JSON-RPC method surface
+    observed: 'message/send only ("This agent answers message/send only.")'
+    note: >-
+      A2A 0.3 defines tasks/get as part of the core method set; this agent implements only message/send, and
+      says so in the -32601 error data. Consistent with capabilities.streaming false and a two-step
+      request/response design, but a client that follows up with tasks/get or tasks/cancel gets Method not
+      supported.
+  - field: provider.organization vs zone
+    observed: '"Agent Bench" at agenthaven.dev'
+    note: The company name and the domain differ; both are the provider's own and consistent across the card, the ARD catalog, the MCP serverInfo and the ANS registration. Recorded so the naming does not read as a mismatch.
+surface_relationship:
+  note: >-
+    One agent, two protocol doors, no REST contract. The A2A actions search_flights and create_checkout ARE the
+    two MCP tools of the same names: the card says the machine-readable schemas come from tools/list on the MCP
+    interface, the A2A error data says the same, and the MCP initialize instructions repeat the card's
+    authorization text verbatim. There is no OpenAPI, GraphQL or documented REST path for either operation
+    (/openapi.json, /openapi.yaml, /swagger.json, /docs all 404 on the host), so no tool crosswalk is emitted.
+    Three read-only JSON surfaces sit beside the agent — GET /health (status, mode, counters, guest policy),
+    GET /ledger (a hash-chained, ES256-signed record of every quote, refusal, intent and completed checkout;
+    639 entries 2026-08-27 → 2026-09-19 at fetch) and the /.well-known key documents — and are catalogued in
+    well-known/, lifecycle/ and errors/.

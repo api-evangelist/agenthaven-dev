@@ -1,0 +1,140 @@
+generated: '2026-09-19'
+method: probed
+source: https://travel.agenthaven.dev/ledger
+probed: true
+docs: https://travel.agenthaven.dev/
+derived_from:
+- live 404/405 responses on travel.agenthaven.dev and agenthaven.dev (2026-09-19)
+- JSON-RPC -32601 responses from POST /a2a and POST /mcp (2026-09-19)
+- mcp/agenthaven-dev-mcp-tools.json (refusal conditions stated in tool descriptions and schemas)
+- 221 request.refused entries in the public ledger (639 entries, 2026-08-27 → 2026-09-19)
+format: json-error-object + jsonrpc-2.0 + ledger-refusal-codes
+note: >-
+  Not RFC 9457 and not an OpenAPI-derived catalog — the provider publishes no OpenAPI. Three layers were
+  observed. (1) A REST-style envelope for transport-level errors. (2) JSON-RPC 2.0 error objects on the two
+  RPC doors. (3) Business refusals, which the merchant records in its public, hash-chained ledger as
+  request.refused entries with facts.reason and facts.step — the reading guide says "facts.reason is the code,
+  facts.step the check (see reason-codes.json)", but no reason-codes.json is served at /reason-codes.json,
+  /ledger/reason-codes.json or /.well-known/reason-codes.json (all 404), so the code list below is the set
+  OBSERVED in the ledger plus the conditions the tool descriptions state. Meanings are given only where the
+  provider states them; otherwise the code is recorded by name with its observed step and count.
+envelope:
+  media_type: application/json
+  rest:
+    fields:
+    - {name: error.code, description: snake_case machine code}
+    - {name: error.message, description: one human sentence}
+    - {name: request_id, description: UUID; also sent as the x-request-id response header}
+    observed:
+    - {status: 404, code: not_found, message: 'Route not found.', url: 'https://travel.agenthaven.dev/openapi.json', note: 'The generic 404 for every unknown path on every host — 111 bytes, never an HTML shell.'}
+    - {status: 404, code: not_found, message: 'This merchant has no authorization server configured.', url: 'https://travel.agenthaven.dev/.well-known/oauth-protected-resource'}
+    - {status: 405, code: method_not_allowed, message: '/a2a answers POST only.', url: 'GET https://travel.agenthaven.dev/a2a'}
+    - {status: 405, code: sse_unsupported, message: 'This MCP endpoint does not open server-initiated streams. POST JSON-RPC messages instead.', url: 'GET https://travel.agenthaven.dev/mcp'}
+  jsonrpc:
+    observed:
+    - {code: -32601, message: 'Method "agent/getAuthenticatedExtendedCard" is not supported. This agent answers message/send only.', data: '{"acceptedParts":["data"],"actions":["search_flights","create_checkout"],"schemas":"POST tools/list to https://travel.agenthaven.dev/mcp"}', url: 'POST https://travel.agenthaven.dev/a2a'}
+    - {code: -32601, message: 'Unknown method "resources/list". This server implements initialize, ping, tools/list and tools/call.', url: 'POST https://travel.agenthaven.dev/mcp'}
+    - {code: -32601, message: 'Unknown method "prompts/list". This server implements initialize, ping, tools/list and tools/call.', url: 'POST https://travel.agenthaven.dev/mcp'}
+    note: How a tools/call refusal is surfaced to the caller (JSON-RPC error vs. result with isError) was not observed — no tool was called.
+  ledger_refusal:
+    type: request.refused
+    fields: [facts.request_id, facts.correlation_id, facts.correlation_source, facts.operation, facts.reason, facts.step, facts.actor, facts.source, facts.quote_id, facts.quote_hash, facts.jti, facts.first_use, facts.claimed_exercise]
+    semantics: '"A check refused the call and the merchant said why … A refusal is the merchant working, not failing. When facts.claimed_exercise is present the CALLER said the call was a test vector; the claim is recorded, not believed."'
+problem_types:
+- code: header_forbidden
+  layer: ledger
+  step: 2
+  operation: create_checkout
+  occurrences: 162
+  meaning: null
+  note: The most frequent refusal in the chain; the provider documents no meaning beyond the code name. Step 2 places it before authorization checks, so it concerns a request header the merchant rejects.
+- code: authorization_missing
+  layer: ledger
+  step: 4
+  operation: create_checkout
+  occurrences: 7
+  meaning: No bearer authorization on a call that needs one — the card and instructions state create_checkout "Needs a bearer authorization"; search_flights and tools/list are open.
+- code: authorization_invalid
+  layer: ledger
+  step: null
+  operation: create_checkout
+  occurrences: 2
+  meaning: null
+- code: authorization_denied
+  layer: ledger
+  step: 6
+  operation: create_checkout
+  occurrences: 8
+  meaning: null
+  note: 'Consistent with the docs: "a request above the cap is refused, and the refusal is written to the ledger" — the mandate carries a spending cap, currency and deadline set by the buyer''s human. Not confirmed as the exact code for that case.'
+- code: signer_unknown
+  layer: ledger
+  step: 3
+  operation: create_checkout
+  occurrences: 1
+  meaning: null
+  note: Auth form (1) requires the envelope key to be attested at /.well-known/agent-keys.json on the caller's domain, or in a _agent-keys TXT record for guests.
+- code: identity_revoked
+  layer: ledger
+  step: 3
+  operation: create_checkout
+  occurrences: 1
+  meaning: null
+- code: quote_unavailable
+  layer: ledger
+  step: 7
+  operation: create_checkout
+  occurrences: 2
+  meaning: 'Stated in the create_checkout description: "an id search_flights did not mint is refused as quote_unavailable"; quotes are valid ten minutes.'
+  remediation: Run search_flights again and send one of the returned options[].id within ten minutes.
+- code: quote_hash_mismatch
+  layer: ledger
+  step: 7
+  operation: create_checkout
+  occurrences: 5
+  meaning: 'Stated in the inputSchema: quote_hash is "the hash you computed over the quote_jws payload; the seller recomputes its own and refuses a mismatch."'
+  remediation: Recompute SHA-256 lowercase hex over the raw decoded payload octets of quote_jws, or omit quote_hash.
+- code: mandate_expired
+  layer: ledger
+  step: 8
+  operation: create_checkout
+  occurrences: 6
+  meaning: The mandate's lifetime has passed — guest mandates live at most 10 minutes (docs; health guests.mandate_max_seconds 600).
+- code: mandate_consumed
+  layer: ledger
+  step: 9
+  operation: create_checkout
+  occurrences: 19
+  meaning: 'The mandate was already spent — "jti … never reused: the mandate buys once" (guest-buyer contract). The ledger entry carries facts.first_use with the request_id that consumed it. This is the replay-protection signal; see conventions/ idempotency.'
+- code: mandate_revoked
+  layer: ledger
+  step: 10
+  operation: create_checkout
+  occurrences: 4
+  meaning: 'The mandate was withdrawn at its issuer — the guest-buyer contract (section 5, Revoking) describes a live GET <issuer>/mandates/<jti> check at step 10 where "withdrawal takes effect within its TTL".'
+- code: search_budget_exhausted
+  layer: ledger
+  step: null
+  operation: search_flights
+  occurrences: 2
+  meaning: The shared anonymous search budget (40/day, 120/month) is spent; "an authorised search never counts against that". Live counters at GET /health.
+  remediation: Retry after the daily/monthly window, or search with an authorization.
+- code: request_invalid
+  layer: ledger
+  step: null
+  operation: null
+  occurrences: 2
+  meaning: null
+  note: 'Schema-level refusals stated in tools/list but not observed as a distinct code: merchant_id other than "demo-travel-seller" ("Any other value is refused"), currency other than EUR ("refuses the rest"), additionalProperties false on both tools, and the regex/const constraints on origin, destination, departure_date and correlation_id.'
+- code: payment.ambiguous
+  layer: ledger
+  operation: create_checkout
+  occurrences: 0
+  meaning: '"The rail did not answer, twice. Nothing is known to have happened; the mandate stays retryable with the same idempotency key, so a retry finds the intent if one exists." Documented in the ledger reading guide; not present in the chain at fetch.'
+summary:
+  rest_codes: 3
+  jsonrpc_codes: 1
+  ledger_reason_codes_observed: 13
+  refusals_observed: 221
+  refusals_by_reason: {header_forbidden: 162, mandate_consumed: 19, authorization_denied: 8, authorization_missing: 7, mandate_expired: 6, quote_hash_mismatch: 5, mandate_revoked: 4, authorization_invalid: 2, quote_unavailable: 2, search_budget_exhausted: 2, request_invalid: 2, identity_revoked: 1, signer_unknown: 1}
+  retry_after: not signalled

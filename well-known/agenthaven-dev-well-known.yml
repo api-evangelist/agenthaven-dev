@@ -1,0 +1,326 @@
+generated: '2026-09-19'
+method: probed
+source: >-
+  Live GET probes of the named /.well-known/* path list on agenthaven.dev, www.agenthaven.dev, travel.agenthaven.dev
+  and dns-aid.agenthaven.dev, 2026-09-19. Every row below is a request that was actually issued; every status is
+  the one returned.
+summary:
+  hosts_probed: 4
+  paths_probed: 96
+  documents_served: 8
+  distinct_documents: 7
+  negative_control: passed (404 on every host)
+  note: >-
+    Agent Bench serves seven distinct well-known documents, all on the agent host travel.agenthaven.dev (dns-aid.agenthaven.dev
+    is the same origin): the A2A agent card at both the canonical and legacy paths, an ARD trust catalog, the merchant's
+    JWKS, the DNS-AID record-signing JWKS (also served at the apex — the apex's only document), a SPIFFE trust bundle
+    and a SPIFFE JWT-SVID for the running instance. None of the rubric's named documents are among them: no security.txt,
+    no OAuth/OIDC discovery, no RFC 9728 protected-resource metadata for the MCP resource (the path returns an explicit
+    'no authorization server configured' 404), no RFC 9727 api-catalog, no APIs.json, no AAuth resource document,
+    no ai-plugin, no UCP/ACP manifest. Every miss is the site's real JSON 404 (111 bytes), never an HTML shell;
+    www 301s everything to the apex and serves nothing of its own.
+hosts:
+- host: agenthaven.dev
+  role: Website — DNS-AID zone index page; provider.url in the agent card
+  documents:
+  - path: /.well-known/agent-card.json
+    status: 404
+    note: The apex is the DNS-AID zone index, not an agent; cards are per agent host.
+  - path: /.well-known/agent.json
+    status: 404
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/api-catalog.json
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/ucp.json
+    status: 404
+  - path: /.well-known/acp.json
+    status: 404
+  - path: /.well-known/aauth-resource.json
+    status: 404
+  - path: /.well-known/apis.json
+    status: 404
+  - path: /apis.json
+    status: 404
+  - path: /apis.yml
+    status: 404
+  - path: /.well-known/mcp.json
+    status: 404
+  - path: /.well-known/ard.json
+    status: 404
+  - path: /.well-known/jwks.json
+    status: 404
+  - path: /.well-known/dns-aid-jwks.json
+    status: 200
+    content_type: application/json
+    bytes: 186
+    file: agenthaven-dev-dns-aid-jwks.json
+    standard: JWK Set (RFC 7517) — DNS-AID record-signing key, kid dnsaid-2026-09
+    note: >-
+      The only well-known document the apex serves; byte-identical to the copy on dns-aid.agenthaven.dev. The index
+      page says the DNS-AID verification key set is served 'at this host' as well.
+  - path: /.well-known/spiffe-bundle.json
+    status: 404
+  - path: /.well-known/spiffe-svid.json
+    status: 404
+  - path: /.well-known/agent-keys.json
+    status: 404
+  - path: /.well-known/apievangelist-negative-control-7f3a9c.json
+    status: 404
+- host: www.agenthaven.dev
+  role: www alias; 301s every path to the apex
+  documents:
+  - path: /.well-known/agent-card.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/agent-card.json
+  - path: /.well-known/agent.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/agent.json
+  - path: /.well-known/security.txt
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/security.txt
+  - path: /security.txt
+    status: 301
+    redirect: https://agenthaven.dev/security.txt
+  - path: /.well-known/openid-configuration
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/openid-configuration
+  - path: /.well-known/oauth-authorization-server
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/oauth-authorization-server
+  - path: /.well-known/oauth-protected-resource
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/oauth-protected-resource
+  - path: /.well-known/api-catalog
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/api-catalog
+  - path: /.well-known/api-catalog.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/api-catalog.json
+  - path: /.well-known/ai-plugin.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/ai-plugin.json
+  - path: /.well-known/ucp.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/ucp.json
+  - path: /.well-known/acp.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/acp.json
+  - path: /.well-known/aauth-resource.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/aauth-resource.json
+  - path: /.well-known/apis.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/apis.json
+  - path: /apis.json
+    status: 301
+    redirect: https://agenthaven.dev/apis.json
+  - path: /apis.yml
+    status: 301
+    redirect: https://agenthaven.dev/apis.yml
+  - path: /.well-known/mcp.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/mcp.json
+  - path: /.well-known/ard.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/ard.json
+  - path: /.well-known/jwks.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/jwks.json
+  - path: /.well-known/dns-aid-jwks.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/dns-aid-jwks.json
+  - path: /.well-known/spiffe-bundle.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/spiffe-bundle.json
+  - path: /.well-known/spiffe-svid.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/spiffe-svid.json
+  - path: /.well-known/agent-keys.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/agent-keys.json
+  - path: /.well-known/apievangelist-negative-control-7f3a9c.json
+    status: 301
+    redirect: https://agenthaven.dev/.well-known/apievangelist-negative-control-7f3a9c.json
+- host: travel.agenthaven.dev
+  role: Agent host — A2A JSON-RPC endpoint (/a2a), MCP server (/mcp), docs, /health, /ledger
+  documents:
+  - path: /.well-known/agent-card.json
+    status: 200
+    content_type: application/json
+    bytes: 2905
+    file: ../a2a/agenthaven-dev-agent-card.json
+    standard: A2A Agent Card (protocolVersion 0.3)
+  - path: /.well-known/agent.json
+    status: 200
+    content_type: application/json
+    bytes: 2905
+    file: ../a2a/agenthaven-dev-agent-card.json
+    standard: A2A Agent Card, legacy pre-0.3 path
+    note: Byte-identical to the canonical card (2,905 bytes).
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+    note: >-
+      This is the MCP resource host (https://travel.agenthaven.dev/mcp). Body: {"error":{"code":"not_found","message":"This
+      merchant has no authorization server configured."}} — a deliberate, explicit absence of RFC 9728 metadata
+      rather than a generic 404.
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/api-catalog.json
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/ucp.json
+    status: 404
+  - path: /.well-known/acp.json
+    status: 404
+  - path: /.well-known/aauth-resource.json
+    status: 404
+  - path: /.well-known/apis.json
+    status: 404
+  - path: /apis.json
+    status: 404
+  - path: /apis.yml
+    status: 404
+  - path: /.well-known/mcp.json
+    status: 404
+  - path: /.well-known/ard.json
+    status: 200
+    content_type: application/json
+    bytes: 1760
+    file: agenthaven-dev-ard.json
+    standard: ARD catalog, specVersion 1.0 (trust manifest anchored in DNS-AID)
+  - path: /.well-known/jwks.json
+    status: 200
+    content_type: application/json
+    bytes: 215
+    file: agenthaven-dev-jwks.json
+    standard: JWK Set (RFC 7517) — the key set the merchant verifies buyer tokens against
+  - path: /.well-known/dns-aid-jwks.json
+    status: 200
+    content_type: application/json
+    bytes: 186
+    file: agenthaven-dev-dns-aid-jwks.json
+    standard: JWK Set (RFC 7517) — DNS-AID record-signing key, kid dnsaid-2026-09
+  - path: /.well-known/spiffe-bundle.json
+    status: 200
+    content_type: application/json
+    bytes: 220
+    file: agenthaven-dev-spiffe-bundle.json
+    standard: SPIFFE trust bundle (JWKS, use jwt-svid) for trust domain agenthaven.dev
+  - path: /.well-known/spiffe-svid.json
+    status: 200
+    content_type: application/json
+    bytes: 1099
+    file: agenthaven-dev-spiffe-svid.json
+    standard: SPIFFE JWT-SVID for the running merchant instance
+  - path: /.well-known/agent-keys.json
+    status: 404
+    note: >-
+      The path the docs name for a BUYER's key attestation on the buyer's own domain; the merchant does not serve
+      one for itself.
+  - path: /.well-known/apievangelist-negative-control-7f3a9c.json
+    status: 404
+    note: >-
+      Negative control: a path that cannot exist, to prove the 200s above are served documents and not a catch-all.
+- host: dns-aid.agenthaven.dev
+  role: Named by the index page as the DNS-AID JWKS host; an alias of the travel origin
+  documents:
+  - path: /.well-known/agent-card.json
+    status: 200
+    content_type: application/json
+    bytes: 2905
+    note: >-
+      Same origin as travel.agenthaven.dev (identical bytes on every 200 path); the canonical copy is catalogued
+      under travel.
+    standard: A2A Agent Card (protocolVersion 0.3)
+  - path: /.well-known/agent.json
+    status: 200
+    content_type: application/json
+    bytes: 2905
+    note: Alias of the travel origin; identical bytes, not saved twice.
+    standard: A2A Agent Card, legacy pre-0.3 path
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/api-catalog.json
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/ucp.json
+    status: 404
+  - path: /.well-known/acp.json
+    status: 404
+  - path: /.well-known/aauth-resource.json
+    status: 404
+  - path: /.well-known/apis.json
+    status: 404
+  - path: /apis.json
+    status: 404
+  - path: /apis.yml
+    status: 404
+  - path: /.well-known/mcp.json
+    status: 404
+  - path: /.well-known/ard.json
+    status: 200
+    content_type: application/json
+    bytes: 1760
+    note: Alias of the travel origin; identical bytes, not saved twice.
+    standard: ARD catalog, specVersion 1.0 (trust manifest anchored in DNS-AID)
+  - path: /.well-known/jwks.json
+    status: 200
+    content_type: application/json
+    bytes: 215
+    note: Alias of the travel origin; identical bytes, not saved twice.
+    standard: JWK Set (RFC 7517) — the key set the merchant verifies buyer tokens against
+  - path: /.well-known/dns-aid-jwks.json
+    status: 200
+    content_type: application/json
+    bytes: 186
+    note: Alias of the travel origin; identical bytes, not saved twice.
+    standard: JWK Set (RFC 7517) — DNS-AID record-signing key, kid dnsaid-2026-09
+  - path: /.well-known/spiffe-bundle.json
+    status: 200
+    content_type: application/json
+    bytes: 220
+    note: Alias of the travel origin; identical bytes, not saved twice.
+    standard: SPIFFE trust bundle (JWKS, use jwt-svid) for trust domain agenthaven.dev
+  - path: /.well-known/spiffe-svid.json
+    status: 200
+    content_type: application/json
+    bytes: 1099
+    note: Alias of the travel origin; identical bytes, not saved twice.
+    standard: SPIFFE JWT-SVID for the running merchant instance
+  - path: /.well-known/agent-keys.json
+    status: 404
+  - path: /.well-known/apievangelist-negative-control-7f3a9c.json
+    status: 404

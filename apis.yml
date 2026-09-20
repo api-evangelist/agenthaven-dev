@@ -1,18 +1,73 @@
 aid: agenthaven-dev
 name: Agent Bench
-description: 'Agent Bench is a company surfaced via the API Evangelist harvest backlog (source: a2a-registry)
-  and added to the network as a stub for full-pipeline profiling.'
+description: >-
+  Agent Bench operates agenthaven.dev, a DNSSEC-signed zone that publishes AI agents through DNS-AID, and runs
+  one live agent in it: the Agent Bench Travel Merchant at travel.agenthaven.dev — a proof-of-concept seller
+  agent that quotes real flight fares (Google Flights via SerpApi) and turns a chosen quote into a Stripe
+  test-mode payment intent under a buyer-supplied spending mandate. It is reachable over A2A (JSON-RPC 0.3,
+  agent card at the canonical well-known path, pinned by SHA-256 digest and ES256 signature in the DNS SVCB
+  record) and MCP (2025-06-18, two tools with full input and output schemas, anonymous tools/list). It
+  publishes a SPIFFE JWT-SVID for the running instance, DANE TLSA pins, an ARD trust catalog, a GoDaddy ANS
+  registration and a public hash-chained ledger of every quote, refusal and checkout. No OpenAPI, no SDKs, no
+  pricing; no real money moves and no ticket is issued.
 url: https://raw.githubusercontent.com/api-evangelist/agenthaven-dev/refs/heads/main/apis.yml
 x-type: company
 x-source: harvest:a2a-registry
-x-tier: stub
-x-tier-reason: harvest
+x-tier: profiled
+x-tier-reason: 'Full local enrichment pass 2026-09-19 (was: stub / harvest). Conformant A2A agent card, live anonymous MCP server, DNS-AID/DNSSEC/DANE discovery and a public audit ledger found on travel.agenthaven.dev; no OpenAPI.'
 specificationVersion: '0.20'
 created: '2026-09-19'
 modified: '2026-09-19'
 tags:
-- Company
-apis: []
+- Agents
+- A2A
+- MCP
+- Agentic Commerce
+- DNS-AID
+- Travel
+- Flights
+- Payments
+- Agent Identity
+- Proof of Concept
+- agent-native
+apis:
+- aid: agenthaven-dev:agent-bench-travel-merchant
+  name: Agent Bench Travel Merchant
+  description: >-
+    Seller agent for flight search and travel checkout, exposed on one host through two protocol doors: A2A
+    JSON-RPC 0.3 at https://travel.agenthaven.dev/a2a (message/send with a DataPart {action, input} or a
+    one-line TextPart) and MCP 2025-06-18 at https://travel.agenthaven.dev/mcp (initialize, ping, tools/list,
+    tools/call). Two operations, called in order: search_flights (anonymous; IATA codes and an ISO date in,
+    up to two signed quotes valid ten minutes out — cheapest and fastest, with itinerary and EUR fare in minor
+    units) and create_checkout (bearer JWT under a spending mandate; turns one quote into a Stripe test-mode
+    payment intent and stops — no ticket, no real money). Every response carries a request id and an evidence
+    block naming the merchant, the card digest and the SPIFFE signer; every call is written to the public
+    hash-chained ledger at /ledger. No OpenAPI: the machine-readable contract is tools/list.
+  humanURL: https://travel.agenthaven.dev/
+  baseURL: https://travel.agenthaven.dev
+  tags:
+  - A2A
+  - MCP
+  - Travel
+  - Flights
+  - Agentic Commerce
+  - agent-native
+  properties:
+  - type: Documentation
+    url: https://travel.agenthaven.dev/
+  - type: AgentCard
+    url: a2a/agenthaven-dev-a2a.yml
+  - type: AgentCard
+    name: A2A Agent Card (provider-hosted)
+    url: https://travel.agenthaven.dev/.well-known/agent-card.json
+  - type: MCPServer
+    url: mcp/agenthaven-dev-mcp.yml
+  - type: MCPServer
+    name: MCP endpoint (Streamable HTTP, POST only)
+    url: https://travel.agenthaven.dev/mcp
+  - type: A2A
+    name: A2A JSON-RPC endpoint (POST only, message/send)
+    url: https://travel.agenthaven.dev/a2a
 maintainers:
 - FN: Kin Lane
   email: kin@apievangelist.com
@@ -21,3 +76,44 @@ maintainers:
 common:
 - type: Website
   url: https://agenthaven.dev/
+- type: Documentation
+  url: https://travel.agenthaven.dev/
+- type: AgentCard
+  url: a2a/agenthaven-dev-a2a.yml
+- type: MCPServer
+  url: mcp/agenthaven-dev-mcp.yml
+- type: AgenticAccess
+  url: agentic-access/agenthaven-dev-agentic-access.yml
+- type: WellKnown
+  url: well-known/agenthaven-dev-well-known.yml
+- type: LLMsTxt
+  url: llms/agenthaven-dev-llms.txt
+- type: Authentication
+  url: authentication/agenthaven-dev-authentication.yml
+- type: Conventions
+  url: conventions/agenthaven-dev-conventions.yml
+- type: Idempotency
+  url: conventions/agenthaven-dev-conventions.yml
+- type: ErrorCatalog
+  url: errors/agenthaven-dev-problem-types.yml
+- type: DataModel
+  url: data-model/agenthaven-dev-data-model.yml
+- type: RateLimits
+  url: rate-limits/agenthaven-dev-rate-limits.yml
+- type: Plans
+  url: plans/agenthaven-dev-plans-pricing.yml
+- type: Sandbox
+  url: sandbox/agenthaven-dev-sandbox.yml
+- type: Conformance
+  url: conformance/agenthaven-dev-conformance.yml
+- type: Lifecycle
+  url: lifecycle/agenthaven-dev-lifecycle.yml
+- type: AgentSkill
+  url: skills/_index.yml
+- type: DomainSecurity
+  url: security/agenthaven-dev-domain-security.yml
+x-enrichment:
+  date: '2026-09-19'
+  status: enriched
+  artifacts_added: 26
+  pass: local-v3

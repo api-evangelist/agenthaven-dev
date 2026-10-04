@@ -29,6 +29,18 @@ tags:
 - Payments
 - Agent Identity
 - Proof of Concept
+- Agent-Native
+tags_raw:
+- Agents
+- A2A
+- MCP
+- Agentic Commerce
+- DNS-AID
+- Travel
+- Flights
+- Payments
+- Agent Identity
+- Proof of Concept
 - agent-native
 apis:
 - aid: agenthaven-dev:agent-bench-travel-merchant
@@ -46,6 +58,13 @@ apis:
   humanURL: https://travel.agenthaven.dev/
   baseURL: https://travel.agenthaven.dev
   tags:
+  - A2A
+  - MCP
+  - Travel
+  - Flights
+  - Agentic Commerce
+  - Agent-Native
+  tags_raw:
   - A2A
   - MCP
   - Travel
@@ -117,3 +136,10 @@ x-enrichment:
   status: enriched
   artifacts_added: 26
   pass: local-v3
+x-a2a:
+  verified: true
+  probed: '2026-09-26'
+  url: "https://travel.agenthaven.dev/.well-known/agent-card.json"
+  grade: "conformant"
+  protocol_version: "0.3"
+  control: 404

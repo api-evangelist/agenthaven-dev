@@ -167,3 +167,18 @@ tool_quality:
   scored: false
   note: Facts from the saved tools/list capture (mcp_tool_quality.py); recorded, not scored. Checks learned
     from Glimind's agent-readiness audit.
+tools:
+- name: search_flights
+  description: 'First step. Search flight offers for one route on one date; no authorization needed. Optional
+    airlines keeps only itineraries on those airlines. Returns up to two options, each a quote valid for
+    ten minutes: the cheapest fare and the fastest journey (one option carrying both labels when they
+    coincide), with itinerary — flight numbers, airline, airports, local departure and arrival times,
+    stops — and fare in minor units. Choose one; its id is the input to create_checkout.'
+- name: create_checkout
+  description: 'Second step, after search_flights. quote_id is the id of one of its options (options[].id,
+    q_ followed by a UUID), valid ten minutes; there is no fixed example, and an id search_flights did
+    not mint is refused as quote_unavailable. Needs a bearer authorization (see the agent card''s securitySchemes.bearer
+    for where one comes from). Turns the quote into a payment intent and stops there: no ticket is issued.
+    A PaymentIntent is created at Stripe in test mode and confirmed with a test card (pm_card_visa); it
+    succeeds and captures. Test mode: no real card, no real money.'
+tools_count: 2
